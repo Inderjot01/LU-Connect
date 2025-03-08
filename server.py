@@ -129,6 +129,11 @@ class server:
                 self.clients[sender_username].send("[SERVER TO CLIENT] User does not exist D:".encode('utf-8'))
 
 
+#Code run
+
+server_inst = server()
+server_inst.start_server()
+
 
 
 
