@@ -108,7 +108,29 @@ class server:
         msg = msg.strip()
 
         #Store the message 
+
+        insert_query = "INSERT INTO chat_history (sender, recipient, message) VALUES (?, ?, ?)"
+        with self.lock:
+            self.cursor.execute(insert_query, (sender_username, recpt_username, msg))
+            self.db.commit()
         
+        #Send message (TEXT ONLY)
+
+        with self.lock:
+
+            if recpt_username in self.clients:
+
+                send_msg = f"{sender_username}:{msg}"
+                send_msg_encrypt = cipher.encrypt(send_msg)
+                self.clients[recpt_username].send(send_msg_encrypt.utf("utf-8"))
+            
+            else:
+
+                self.clients[sender_username].send("[SERVER TO CLIENT] User does not exist D:".encode('utf-8'))
+
+
+
+
 
 
 
