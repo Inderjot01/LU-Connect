@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import simpledialog
 from tkinter.scrolledtext import ScrolledText
 from cryptography.fernet import Fernet
-from server import server
+#from server import server
 
 ENCRYPTION_KEY = b'_ElApoJm7Q0aRh95L2c2HNYZtT55nqaL16QkBwD0BD8='
 cipher = Fernet(ENCRYPTION_KEY)
@@ -15,6 +15,7 @@ class Client:
         self.port = port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.username = None
+        self.activeclients = []
     
     def connection(self):
         self.client.connect((self.host, self.port))
@@ -45,21 +46,25 @@ class Client:
 
 class ChatUI(tk.Tk):
     def __init__(self, client):
+
         super().__init__()
         self.client = client
+
         self.title("Chat Client")
         self.geometry("800x600")
         self.configure(bg="white")
-        
+        #Leftside
         self.left_frame = tk.Frame(self, bg="lightgray", width=200)
         self.left_frame.pack(side=tk.LEFT, fill=tk.Y)
         self.active_label = tk.Label(self.left_frame, text="ACTIVE USERS", bg="lightgray", font=("Arial", 12, "bold"))
         self.active_label.pack(pady=10)
         self.user_listbox = tk.Listbox(self.left_frame, font=("Arial", 12))
         self.user_listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        for user in list(server_instance.clients.keys()):
+
+        for user in client_inst.activeclients:
             self.user_listbox.insert(tk.END, user)
-        
+
+        #Rightside
         self.right_frame = tk.Frame(self, bg="white")
         self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.chat_display = ScrolledText(self.right_frame, font=("Arial", 12), bg="white", fg="black", state="disabled")
@@ -87,7 +92,7 @@ class ChatUI(tk.Tk):
     def recv(self):
         threading.Thread(target=self.client.recev_msg, daemon=True).start()
 
-server_instance = server()
+#server_instance = server()
 client_inst = Client()
 
 root = tk.Tk()
@@ -98,6 +103,7 @@ root.destroy()
 if username:
     client_inst.username = username
     client_inst.connection()
+    client_inst.activeclients.append(username)
     client_inst.client.send(username.encode("utf-8"))
     welcome = client_inst.client.recv(1024).decode("utf-8")
     print("[SERVER]:", welcome)
