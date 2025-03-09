@@ -60,9 +60,11 @@ class server:
 
                 self.semaphore.acquire()
 
-                with self.lock: #[TODO] I don't think it will work
+                with self.lock: 
 
                     self.queue_number -= 1
+                
+                client_socket.send("You have entered. You can chat now".encode("utf-8"))
 
         
             
@@ -129,6 +131,32 @@ class server:
             else:
 
                 self.clients[sender_username].send("[SERVER TO CLIENT] User does not exist D:".encode('utf-8'))
+        
+    def get_chatHistory(self,sender_username, target): #[TODO] When frontend fix this
+
+        query = """
+                SELECT sender, recipient, message, timestamp FROM chat_history
+                WHERE (sender = ? AND recipient = ?) OR (sender = ? AND recipient = ?)
+                ORDER BY timestamp ASC
+                """
+        self.cursor.execute(query, (sender_username, target, target, sender_username))
+        rows = self.cursor.fetchall()
+        # if rows:
+        #     history = "\n".join([f"{row[0]} -> {row[1]}: {row[2]} ({row[3]})" for row in rows])
+        # else:
+        #     history = f"[DATABASE] No chat history with {target}"
+
+        return 
+    
+    def active_users(self): #[TODO]: Implementation for frontend 
+
+        with self.lock:
+
+            users = list(self.clients.keys())
+        
+        return users 
+        
+
 
 
 
@@ -141,9 +169,9 @@ server_inst.start_server()
 #[TODO] for me :D
 
 '''
-- History acessing missing
-- Limiting number of user connection  missing and handeling missing
-- Show active users missing 
+- History acessing missing -- DONE
+- Limiting number of user connection  missing and handeling missing -- DONE
+- Show active users missing --DONE
 - ...
 
 

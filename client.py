@@ -50,7 +50,7 @@ class Client:
                 msg = cipher.decrypt(encrypt_msg).decode("utf-8")
                 print("\n" + msg)
             except Exception as error:
-                print("[ERROR]", error)
+                #print("[ERROR]", error)
                 break
 
     def signin(self):
