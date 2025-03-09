@@ -16,6 +16,7 @@ class server:
         self.clients = {}  
         self.lock = threading.Lock()
         self.semaphore = threading.Semaphore(max_clients)
+        self.queue_number = 0
 
         self.db = sqlite3.connect("chat_history.db", check_same_thread=False)
         self.cursor = self.db.cursor()
@@ -44,7 +45,28 @@ class server:
             thread.start()
     
     def handle_client(self, client_socket):
-        with self.semaphore:
+
+        
+        
+        #[THREADING]: Handeling join req using semaphore
+
+            if not self.semaphore.acquire(blocking= False): #If not TRUE(When token avail)
+
+                with self.lock:
+                    self.queue_number += 1
+                
+                msg_wait = f"[SERVER FULL] Please wait while another user diconnects. You are {self.queue_number} in queue"
+                client_socket.send(msg_wait.encode("utf-8"))
+
+                self.semaphore.acquire()
+
+                with self.lock: #[TODO] I don't think it will work
+
+                    self.queue_number -= 1
+
+        
+            
+
 
             try:
 
@@ -82,6 +104,7 @@ class server:
                             break
                 
                 client_socket.close()
+                self.semaphore.release()
     
     def route_message(self, sender_username, message):
 
@@ -101,7 +124,7 @@ class server:
                 send_msg = f"{sender_username}:{msg}"
                 send_msg_encrypt = cipher.encrypt(send_msg.encode("utf-8"))
                 self.clients[recpt_username].send(send_msg_encrypt)
-                print(f"[DEBUG] Inserted message from {sender_username} to {recpt_username}")#DEBUG
+                #print(f"[DEBUG] Inserted message from {sender_username} to {recpt_username}")#DEBUG
             
             else:
 
