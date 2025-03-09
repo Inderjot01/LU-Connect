@@ -148,13 +148,7 @@ class server:
 
         return 
     
-    def active_users(self): #[TODO]: Implementation for frontend 
-
-        with self.lock:
-
-            users = list(self.clients.keys())
-        
-        return users 
+ 
         
 
 
