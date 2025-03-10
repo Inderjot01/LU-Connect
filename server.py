@@ -56,7 +56,8 @@ class server:
                     self.queue_number += 1
                 
                 msg_wait = f"[SERVER FULL] Please wait while another user diconnects. You are {self.queue_number} in queue"
-                client_socket.send(msg_wait.encode("utf-8"))
+                msg_wait = cipher.encrypt(msg_wait.encode("utf-8"))
+                client_socket.send(msg_wait)
 
                 self.semaphore.acquire()
 
@@ -92,6 +93,9 @@ class server:
                         break
                     msg = cipher.decrypt(encrypt_msg).decode('utf-8')
                     print(f"[CLIENT TO SERVER] Message from {username}:{msg}")
+                    #Handleing file transfers
+                    if "/file" in msg:
+                        pass 
                     self.route_message(username, msg)
             
             except Exception as error:
@@ -166,6 +170,12 @@ server_inst.start_server()
 - History acessing missing -- DONE
 - Limiting number of user connection  missing and handeling missing -- DONE
 - Show active users missing --DONE
+
+
+ISSUE DOCUMENTATION:
+
+So in UI first we cannot active people in the chats, then que thingy if they are not in chat we can send them
+msg .. we can't click on users to get their chat histories
 - ...
 
 
