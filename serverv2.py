@@ -72,8 +72,27 @@ class Server:
                 print(f"[CLIENT TO SERVER] Message from {username}: {msg}")
                 # If handling file transfers, add logic here
                 if "/file" in msg:
-                    pass 
-                self.route_message(username, msg)
+                    self.handle_send_file(username, msg)
+                elif msg.startswith("/history"):
+                    parts = msg.split(" ", 1)
+                    if len(parts) < 2 or not parts[1].strip():
+                        error_msg = "[SERVER TO CLIENT] Invalid command. Usage: /history <username>"
+                        client_socket.send(cipher.encrypt(error_msg.encode("utf-8")))
+                    else:
+                        target = parts[1].strip()
+                        rows = self.get_chatHistory(username, target)
+                        if not rows:
+                            response = "[SERVER TO CLIENT] No chat history found."
+                        else:
+                            response_lines = []
+                            for row in rows:
+                                # row: (sender, recipient, message, timestamp)
+                                response_lines.append(f"{row[3]} - {row[0]} to {row[1]}: {row[2]}")
+                            response = "\n".join(response_lines)
+                        client_socket.send(cipher.encrypt(response.encode("utf-8")))
+                else:
+                    self.route_message(username, msg)
+
         
         except Exception as error:
             print(f"[SERVER CATCH ERROR] {error}")
@@ -115,8 +134,14 @@ class Server:
         self.cursor.execute(query, (sender_username, target, target, sender_username))
         rows = self.cursor.fetchall()
         return rows
+    
+    def handle_send_file(self, username, msg):
+
+        #Finish this function 
+        pass 
 
 # Run the server
 if __name__ == "__main__":
     server_inst = Server()
     server_inst.start_server()
+

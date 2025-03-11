@@ -60,17 +60,17 @@ class ChatUI(tk.Tk):
         self.geometry("800x600")
         self.configure(bg="white")
         
-        # Left frame for active users
+        # Left frame 
         self.left_frame = tk.Frame(self, bg="lightgray", width=200)
         self.left_frame.pack(side=tk.LEFT, fill=tk.Y)
         self.active_label = tk.Label(self.left_frame, text="ACTIVE USERS", bg="lightgray", font=("Arial", 12, "bold"))
         self.active_label.pack(pady=10)
         self.user_listbox = tk.Listbox(self.left_frame, font=("Arial", 12))
         self.user_listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        for user in client.activeclients:
+        for user in client.activeclients: #[PROBLEM]: Only displays ppl cause not passed from server.
             self.user_listbox.insert(tk.END, user)
         
-        # Right frame for chat display and input
+        # Right frame 
         self.right_frame = tk.Frame(self, bg="white")
         self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         self.chat_display = ScrolledText(self.right_frame, font=("Arial", 12), bg="white", fg="black", state="disabled")
@@ -110,7 +110,6 @@ if __name__ == "__main__":
         client.username = username
         client.connect()
         client.activeclients.append(username)
-        # Send the username in plain text (the server expects it this way)
         client.client.send(username.encode("utf-8"))
         
         # Create the Chat UI and start the message receiver thread
