@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import simpledialog
 from tkinter.scrolledtext import ScrolledText
 from cryptography.fernet import Fernet
+import os
 
 ENCRYPTION_KEY = b'_ElApoJm7Q0aRh95L2c2HNYZtT55nqaL16QkBwD0BD8='
 cipher = Fernet(ENCRYPTION_KEY)
@@ -37,23 +38,45 @@ class Client:
                 data = self.client.recv(1024)
                 if not data:
                     break
-                # Decrypt and display the message
-                msg = cipher.decrypt(data).decode("utf-8")
-                if self.ui:
-                    # Capture the current message in the lambda's default argument
-                    self.ui.after(0, lambda m=msg: self.ui.append_message("Server", m))
+                # Try to decrypt the incoming message; if it fails, assume it's part of a file transfer.
+                try:
+                    msg = cipher.decrypt(data).decode("utf-8")
+                    if self.ui:
+                        self.ui.after(0, lambda m=msg: self.ui.append_message("Server", m))
+                except Exception:
+                    # If decryption fails, we assume it's file data.
+                    # (In a robust implementation, you'd handle file data separately.)
+                    print("[CLIENT] Received raw data (likely file data)")
             except Exception as e:
                 print(f"[CLIENT RECEIVE ERROR] {e}")
                 break
 
-    def close(self):
-        self.client.close()
+    def send_file(self, filepath):
+        """Send a file following the protocol:
+           1. Wait for server ack (which tells you to send a 10-digit file size header).
+           2. Send the file size (as a 10-digit string).
+           3. Send the file data.
+        """
+        try:
+            filesize = os.path.getsize(filepath)
+            # Send the file size as a 10-digit number (zero-padded)
+            size_str = f"{filesize:010d}"
+            self.client.send(size_str.encode("utf-8"))
+            # Now, send the file data in binary chunks
+            with open(filepath, 'rb') as f:
+                while True:
+                    chunk = f.read(4096)
+                    if not chunk:
+                        break
+                    self.client.sendall(chunk)
+            print(f"[CLIENT] File '{filepath}' sent successfully.")
+        except Exception as e:
+            print(f"[CLIENT] Error sending file: {e}")
 
 class ChatUI(tk.Tk):
     def __init__(self, client):
         super().__init__()
         self.client = client
-        # Set the UI reference in the client so the receive thread can update the UI safely
         self.client.ui = self
 
         self.title("Chat Client")
@@ -67,7 +90,7 @@ class ChatUI(tk.Tk):
         self.active_label.pack(pady=10)
         self.user_listbox = tk.Listbox(self.left_frame, font=("Arial", 12))
         self.user_listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        for user in client.activeclients: #[PROBLEM]: Only displays ppl cause not passed from server.
+        for user in client.activeclients:
             self.user_listbox.insert(tk.END, user)
         
         # Right frame 
@@ -85,9 +108,27 @@ class ChatUI(tk.Tk):
     def send(self):
         msg = self.msg_entry.get()
         if msg:
-            self.append_message("You", msg)
-            self.client.send_msg(msg)
+            # Check if the message is a file command
+            if msg.startswith("/file"):
+                # Expected format: /file <filepath> <recipient>
+                parts = msg.split()
+                if len(parts) < 3:
+                    self.append_message("System", "Invalid file command. Usage: /file <filepath> <recipient>")
+                    return
+                file_path = parts[1]
+                # First, send the command as usual
+                self.client.send_msg(msg)
+                # Now, wait for the server's acknowledgment (this example simply waits 1 second;
+                # in a robust solution you would synchronize based on the ack message)
+                self.after(1000, lambda: self.send_file_wrapper(file_path))
+            else:
+                self.append_message("You", msg)
+                self.client.send_msg(msg)
             self.msg_entry.delete(0, tk.END)
+    
+    def send_file_wrapper(self, file_path):
+        """Wrapper to call client's send_file function."""
+        self.client.send_file(file_path)
     
     def append_message(self, sender, msg):
         self.chat_display.config(state="normal")
@@ -116,5 +157,6 @@ if __name__ == "__main__":
         ui = ChatUI(client)
         threading.Thread(target=client.receive_msg, daemon=True).start()
         ui.mainloop()
-        client.close()
+        client.client.close()
+
 
