@@ -85,6 +85,7 @@ class Server:
             
             while True:
                 encrypt_msg = client_socket.recv(1024)
+                print(f"[CLIENT TO SERVER] Encrypted message: {encrypt_msg}")
                 if not encrypt_msg:
                     break
                 msg = cipher.decrypt(encrypt_msg).decode("utf-8")
@@ -132,7 +133,7 @@ class Server:
             recpt_username = recpt_username.strip()
             msg = msg.strip()
         except ValueError:
-            # If the message is not in the expected format
+           
             error_msg = "[SERVER TO CLIENT] Message format error. Use: <recipient>: <message>"
             self.clients[sender_username].send(cipher.encrypt(error_msg.encode("utf-8")))
             return
@@ -161,12 +162,7 @@ class Server:
         return rows
     
     def handle_send_file(self, username, msg, client_socket):
-        """
-        Expected command format: /file <filepath> <recipient>
-        After receiving the command, the server sends an acknowledgment to the client
-        so that the client can send the file size (as a 10-character string) and then the file data.
-        The file is saved in a folder called "recieved_files" (created if it doesn't exist).
-        """
+     
         try:
             parts = msg.split()
             if len(parts) < 3:
@@ -174,7 +170,7 @@ class Server:
                 client_socket.send(cipher.encrypt(error_msg.encode("utf-8")))
                 return
             
-            # Extract the file path and recipient (the command word is parts[0])
+            # Extract the file path and recipient 
             _, file_path, recipient = parts[0], parts[1], parts[2]
             file_name = os.path.basename(file_path)
             folder = "recieved_files"
@@ -183,7 +179,7 @@ class Server:
             file_save_path = os.path.join(folder, file_name)
             
             # Inform client to send file data: first send a header with file size
-            ack_msg = "[SERVER]: Ready to receive file data. Please send the file size as a 10-digit number."
+            ack_msg = "[SERVER]: Ready to receive file data. "
             client_socket.send(cipher.encrypt(ack_msg.encode("utf-8")))
             
             # Receive the file size (10 bytes expected)

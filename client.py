@@ -6,6 +6,7 @@ from tkinter.scrolledtext import ScrolledText
 from cryptography.fernet import Fernet
 import os
 
+
 ENCRYPTION_KEY = b'_ElApoJm7Q0aRh95L2c2HNYZtT55nqaL16QkBwD0BD8='
 cipher = Fernet(ENCRYPTION_KEY)
 
@@ -38,14 +39,13 @@ class Client:
                 data = self.client.recv(1024)
                 if not data:
                     break
-                # Try to decrypt the incoming message; if it fails, assume it's part of a file transfer.
+              
                 try:
                     msg = cipher.decrypt(data).decode("utf-8")
                     if self.ui:
                         self.ui.after(0, lambda m=msg: self.ui.append_message("Server", m))
                 except Exception:
-                    # If decryption fails, we assume it's file data.
-                    # (In a robust implementation, you'd handle file data separately.)
+                   
                     print("[CLIENT] Received raw data (likely file data)")
             except Exception as e:
                 print(f"[CLIENT RECEIVE ERROR] {e}")
@@ -108,6 +108,12 @@ class ChatUI(tk.Tk):
     def send(self):
         msg = self.msg_entry.get()
         if msg:
+            if msg == "/mute":
+                self.notifications_muted = True
+                self.append_message("System", "Notifications muted.")
+            elif msg == "/unmute":
+                self.notifications_muted = False
+                self.append_message("System", "Notifications unmuted.")
             # Check if the message is a file command
             if msg.startswith("/file"):
                 # Expected format: /file <filepath> <recipient>
@@ -116,10 +122,9 @@ class ChatUI(tk.Tk):
                     self.append_message("System", "Invalid file command. Usage: /file <filepath> <recipient>")
                     return
                 file_path = parts[1]
-                # First, send the command as usual
+                
                 self.client.send_msg(msg)
-                # Now, wait for the server's acknowledgment (this example simply waits 1 second;
-                # in a robust solution you would synchronize based on the ack message)
+                
                 self.after(1000, lambda: self.send_file_wrapper(file_path))
             else:
                 self.append_message("You", msg)
@@ -135,15 +140,17 @@ class ChatUI(tk.Tk):
         self.chat_display.insert(tk.END, f"{sender}: {msg}\n")
         self.chat_display.config(state="disabled")
         self.chat_display.see(tk.END)
+        # NOTIFICATION SOUND
+        # if sender != "You" and not self.notifications_muted:
+        #     os.system('afplay /System/Library/Sounds/Ping.aiff')
 
 if __name__ == "__main__":
     client = Client(host="127.0.0.1", port=5003)
     
-    # Create a hidden root to ask for username (only one Tk instance should be used for dialogs and the main UI)
     root = tk.Tk()
     root.withdraw()
     username = simpledialog.askstring("Username", "Enter your username:")
-    # Optionally, get a password if needed
+    
     password = simpledialog.askstring("Password", "Enter your password:")
     root.destroy()
     
@@ -153,7 +160,7 @@ if __name__ == "__main__":
         client.activeclients.append(username)
         client.client.send(username.encode("utf-8"))
         
-        # Create the Chat UI and start the message receiver thread
+       
         ui = ChatUI(client)
         threading.Thread(target=client.receive_msg, daemon=True).start()
         ui.mainloop()
