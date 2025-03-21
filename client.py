@@ -140,9 +140,9 @@ class ChatUI(tk.Tk):
         self.chat_display.insert(tk.END, f"{sender}: {msg}\n")
         self.chat_display.config(state="disabled")
         self.chat_display.see(tk.END)
-        # NOTIFICATION SOUND
-        # if sender != "You" and not self.notifications_muted:
-        #     os.system('afplay /System/Library/Sounds/Ping.aiff')
+        
+        if sender != "You" and not self.notifications_muted:
+            os.system('afplay /System/Library/Sounds/Ping.aiff')
 
 if __name__ == "__main__":
     client = Client(host="127.0.0.1", port=5003)
